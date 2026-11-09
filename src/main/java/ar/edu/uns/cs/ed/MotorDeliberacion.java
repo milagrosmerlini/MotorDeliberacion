@@ -1,7 +1,12 @@
 package ar.edu.uns.cs.ed;
 
-import main.java.ar.edu.uns.cs.ed.tdas.excepciones.InvalidPositionException;
-import main.java.ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
+import ar.edu.uns.cs.ed.tdas.excepciones.InvalidPositionException;
+import ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
+import ar.edu.uns.cs.ed.tdas.tdapila.Stack;
+import ar.edu.uns.cs.ed.tdas.tdamapeo.Map;
+import ar.edu.uns.cs.ed.tdas.tdaarbol.Tree;
+import ar.edu.uns.cs.ed.tdas.tdapila.TDAPila;
+import ar.edu.uns.cs.ed.tdas.Position;
 
 /**
  * Incluir los import necesarios para las clases utilizadas en el código.
@@ -13,6 +18,12 @@ import main.java.ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
  */
 public class MotorDeliberacion {
 
+    //Atributos
+    private Stack<Operaciones> pilaOperaciones;
+    private Tree<Opinion> arbolOpiniones;
+    private Map<String, Position<Opinion>> posicionesPorId;
+    private Map<String, PositionList<Opinion>> opinionesPorUsuario;
+
     /**
      * Incluir los atributos necesarios para el desarrollo.
      */
@@ -22,8 +33,14 @@ public class MotorDeliberacion {
      * Inicializa el árbol de debate, y las estructuras correspondientes.  
      * 
      */
+
+
+
+    //Constructor
     public MotorDeliberacion() {
     //TODO: Inicializar el árbol de debate y las estructuras correspondientes. 
+    
+        pilaOperaciones = new TDAPila<Operaciones>();
     }
 
     /**
@@ -38,8 +55,21 @@ public class MotorDeliberacion {
      * @param idArgumento : Identificador del argumento o de root en caso de ser el tema raíz.
      * @throws IllegalArgumentException si la operación es nula o vacía.
      */
+
+
     public void registrarOperacion(int operacion, String detalle, String idArgumento) {
         //TODO: Implementar el registro de la operación en la estructura correspondiente.
+        if (operacion != 1 && operacion != 2)
+            throw new IllegalArgumentException("Operación invalida");
+
+        if (detalle == null || detalle.trim().isEmpty())
+            throw new IllegalArgumentException("Detalle invalido");
+
+        if (idArgumento == null || idArgumento.trim().isEmpty())
+            throw new IllegalArgumentException("ID invalido");
+
+        Operaciones nueva = new Operaciones(operacion, detalle.trim().toUpperCase(), idArgumento.trim());
+        pilaOperaciones.push(nueva);
     }
 
 /**
@@ -67,6 +97,8 @@ public class MotorDeliberacion {
  */
     public void crearDebate(String idRaiz, String texto, String idUsuario, String nombreUsuario) {
     //TODO: Implementar la creación del debate con el argumento raíz y el usuario correspondiente.
+    Usuario usuario = new Usuario(idUsuario, nombreUsuario);
+    Opinion raiz = new Opinion(idRaiz, texto, "ROOT", usuario);
     }
 
     public void Postear(Usuario usr, String idNuevo, String idPadre, String postura, String texto) {
