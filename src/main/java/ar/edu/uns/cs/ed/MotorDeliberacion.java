@@ -4,18 +4,13 @@ import ar.edu.uns.cs.ed.tdas.excepciones.InvalidPositionException;
 import ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
 import ar.edu.uns.cs.ed.tdas.tdapila.Stack;
 import ar.edu.uns.cs.ed.tdas.tdamapeo.Map;
+import ar.edu.uns.cs.ed.tdas.tdamapeo.MapeoHashAbierto;
+import ar.edu.uns.cs.ed.tdas.tdaarbol.Arbol;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Tree;
 import ar.edu.uns.cs.ed.tdas.tdapila.TDAPila;
+import IllegalArgumentExcep;
 import ar.edu.uns.cs.ed.tdas.Position;
 
-/**
- * Incluir los import necesarios para las clases utilizadas en el código.
- */
-
-/**
- * Clase que representa el motor de deliveración.
- * 
- */
 public class MotorDeliberacion {
 
     //Atributos
@@ -24,23 +19,12 @@ public class MotorDeliberacion {
     private Map<String, Position<Opinion>> posicionesPorId;
     private Map<String, PositionList<Opinion>> opinionesPorUsuario;
 
-    /**
-     * Incluir los atributos necesarios para el desarrollo.
-     */
-
-    /**
-     * Constructor de la clase MotorDeliveracion.
-     * Inicializa el árbol de debate, y las estructuras correspondientes.  
-     * 
-     */
-
-
-
     //Constructor
     public MotorDeliberacion() {
-    //TODO: Inicializar el árbol de debate y las estructuras correspondientes. 
-    
         pilaOperaciones = new TDAPila<Operaciones>();
+        arbolOpiniones = new Arbol();
+        posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
+        opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
     }
 
     /**
@@ -66,10 +50,8 @@ public class MotorDeliberacion {
             throw new IllegalArgumentException("Detalle invalido");
 
         if (idArgumento == null || idArgumento.trim().isEmpty())
-            throw new IllegalArgumentException("ID invalido");
+            throw new IllegalArgumentExcep(nueva);
 
-        Operaciones nueva = new Operaciones(operacion, detalle.trim().toUpperCase(), idArgumento.trim());
-        pilaOperaciones.push(nueva);
     }
 
 /**
@@ -124,6 +106,7 @@ public class MotorDeliberacion {
     //consultar por usuario, devuelve una lista de argumentos que pertenecen a ese usuario.
     public PositionList<Opinion> consultarArgumentosPorUsuario(String idUsuario) {
     //TODO: Implementar la funcionalidad de consultar los argumentos de un usuario específico en el debate.
+    return null;
     }
 
     /**
