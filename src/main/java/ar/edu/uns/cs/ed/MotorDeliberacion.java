@@ -110,6 +110,31 @@ public class MotorDeliberacion {
 
     public void Postear(Usuario usr, String idNuevo, String idPadre, String postura, String texto) {
         //TODO: Implementar la funcionalidad de postear un nuevo argumento en el debate.
+
+        /*Postear (String idUsr: id del usuario que postea, String idNuevo: id del nuevo
+        posteo, String idPadre: id del posteo padre, String postura: postura de este
+        posteo en relación al tema general, String texto: texto del posteo): Método debe
+        resolverse en O(1). Debe agregar un posteo al árbol, como hijo del idPadre y
+        actualizar las estructuras correspondientes para poder realizar el resto de las
+        operaciones en los tiempos indicados.           */
+
+
+        if (arbolOpiniones.isEmpty()) throw new IllegalStateException("No hay ningún debate creado");
+
+        //validacion de parametros
+        if ((usr == null) || (usr.getId() == null) || (usr.getId().trim().isEmpty()) 
+            || (idNuevo == null) || (idNuevo.trim().isEmpty()) 
+            || (idPadre == null) || (idNuevo.trim().isEmpty())
+            || (postura == null) || (postura.trim().isEmpty())
+            || (texto == null) || (texto.trim().isEmpty())) 
+            throw new IllegalArgumentException("alguno/s de los parametros son invalios");
+
+        Position<Opinion> padre = posicionesPorId.get(idPadre.trim());
+        if (padre == null) throw new IllegalArgumentException("El padre no existe");
+        Opinion opinion = new Opinion(idNuevo,texto,postura,usr);
+        Position<Opinion> nuevaOp = arbolOpiniones.addLastChild(padre,opinion);
+        indexar(opinion,)
+        }
     }
     
 
@@ -176,13 +201,13 @@ public class MotorDeliberacion {
      * Cada nodo se muestra con su id, postura, usuario y texto del argumento.
      */
     public void imprimirDebate() {
-        if (arbol == null || arbol.isEmpty()) {
+        if (arbolOpiniones == null || arbolOpiniones.isEmpty()) {
             System.out.println("(El árbol de debate está vacío.)");
             return;
         }
 
         try {
-            Position<Opinion> raiz = arbol.root();
+            Position<Opinion> raiz = arbolOpiniones.root();
             System.out.println(formatearNodo(raiz.element()));
             imprimirHijos(raiz, "");
         } catch (Exception e) {
@@ -196,13 +221,13 @@ public class MotorDeliberacion {
      * conectores tipo "├──" / "└──" para el nivel actual.
      */
     private void imprimirHijos(Position<Opinion> nodo, String prefijo) throws InvalidPositionException {
-        PositionList<Position<Opinion>> hijos = new ListaDoblementeEnlazada<Position<Opinion>>();
-        for (Position<Opinion> hijo : arbol.children(nodo)) {
+        PositionList<Position<Opinion>> hijos = new TdaLista<Position<Opinion>>();
+        for (Position<Opinion> hijo : arbolOpiniones.children(nodo)) {
             hijos.addLast(hijo);
         }
 
 
-        for (Position<Opinion> hijo : arbol.children(nodo)) {
+        for (Position<Opinion> hijo : arbolOpiniones.children(nodo)) {
             boolean esUltimo = (hijo == hijos.last().element());
             
             String conector = esUltimo ? "└── " : "├── ";
@@ -223,5 +248,3 @@ public class MotorDeliberacion {
                 + "usuario=" + a.getUsuario().getId() + " -> " + a.getTexto();
     }
 }
-
-
