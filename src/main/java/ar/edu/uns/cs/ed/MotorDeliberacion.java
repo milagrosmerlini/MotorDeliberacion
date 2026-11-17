@@ -2,14 +2,15 @@ package ar.edu.uns.cs.ed;
 
 import ar.edu.uns.cs.ed.tdas.excepciones.InvalidPositionException;
 import ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
+import ar.edu.uns.cs.ed.tdas.tdalista.TdaLista;
 import ar.edu.uns.cs.ed.tdas.tdapila.Stack;
 import ar.edu.uns.cs.ed.tdas.tdamapeo.Map;
 import ar.edu.uns.cs.ed.tdas.tdamapeo.MapeoHashAbierto;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Arbol;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Tree;
 import ar.edu.uns.cs.ed.tdas.tdapila.TDAPila;
-import IllegalArgumentExcep;
 import ar.edu.uns.cs.ed.tdas.Position;
+import ar.edu.uns.cs.ed.tdas.excepciones.EmptyStackException;
 
 public class MotorDeliberacion {
 
@@ -22,7 +23,7 @@ public class MotorDeliberacion {
     //Constructor
     public MotorDeliberacion() {
         pilaOperaciones = new TDAPila<Operaciones>();
-        arbolOpiniones = new Arbol();
+        arbolOpiniones = new Arbol<Opinion>();
         posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
         opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
     }
@@ -42,7 +43,6 @@ public class MotorDeliberacion {
 
 
     public void registrarOperacion(int operacion, String detalle, String idArgumento) {
-        //TODO: Implementar el registro de la operación en la estructura correspondiente.
         if (operacion != 1 && operacion != 2)
             throw new IllegalArgumentException("Operación invalida");
 
@@ -50,8 +50,10 @@ public class MotorDeliberacion {
             throw new IllegalArgumentException("Detalle invalido");
 
         if (idArgumento == null || idArgumento.trim().isEmpty())
-            throw new IllegalArgumentExcep(nueva);
+            throw new IllegalArgumentException("ID invalido");
 
+        Operaciones nueva = new Operaciones(operacion, detalle.trim().toUpperCase(), idArgumento.trim());
+        pilaOperaciones.push(nueva);
     }
 
 /**
@@ -78,9 +80,32 @@ public class MotorDeliberacion {
  * Crea un usuario y un tema raíz, y los agrega al árbol y a las estructuras correspondientes.
  */
     public void crearDebate(String idRaiz, String texto, String idUsuario, String nombreUsuario) {
-    //TODO: Implementar la creación del debate con el argumento raíz y el usuario correspondiente.
-    Usuario usuario = new Usuario(idUsuario, nombreUsuario);
-    Opinion raiz = new Opinion(idRaiz, texto, "ROOT", usuario);
+    
+        //Si algun parametro es inválido
+        if (idRaiz == null || idRaiz.trim().isEmpty() ||
+            texto == null || texto.trim().isEmpty() ||
+            idUsuario == null || idUsuario.trim().isEmpty() ||
+            nombreUsuario == null || nombreUsuario.trim().isEmpty())
+            throw new IllegalArgumentException("Datos invalidos");
+
+        //Si ya existe un debate en curso
+        if (!arbolOpiniones.isEmpty())
+            throw new IllegalStateException("Ya existe un debate");
+
+        String id = idRaiz.trim();
+        Usuario usuario = new Usuario(idUsuario, nombreUsuario);
+        Opinion raiz = new Opinion(idRaiz, texto, "ROOT", usuario);
+        
+        arbolOpiniones.createRoot(raiz);
+        Position<Opinion> posicionRaiz = arbolOpiniones.root();
+        posicionesPorId.put(id, posicionRaiz);
+
+        PositionList<Opinion> lista = new TdaLista<Opinion>();
+        lista.addLast(raiz);
+        opinionesPorUsuario.put(usuario.getId(), lista);
+
+        registrarOperacion(1, "CREAR_DEBATE:" + id, id);
+
     }
 
     public void Postear(Usuario usr, String idNuevo, String idPadre, String postura, String texto) {
@@ -100,14 +125,26 @@ public class MotorDeliberacion {
 
     //limpia todo el debate, dejando la estructura vacía.   
     public void clearDebate() {
-    //TODO: Implementar la funcionalidad de limpiar todo el debate, dejando la estructura vacía.
+        arbolOpiniones = new Arbol<Opinion>();
+        posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
+        opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
+        pilaOperaciones = new TDAPila<Operaciones>();
     }
 
     //consultar por usuario, devuelve una lista de argumentos que pertenecen a ese usuario.
     public PositionList<Opinion> consultarArgumentosPorUsuario(String idUsuario) {
-    //TODO: Implementar la funcionalidad de consultar los argumentos de un usuario específico en el debate.
-    return null;
-    }
+
+        //Si el ID del usuario es inválido
+        if (idUsuario == null || idUsuario.trim().isEmpty())
+            throw new IllegalArgumentException("ID de usuario invalido");
+
+        PositionList<Opinion> listaArgumentos = opinionesPorUsuario.get(idUsuario.trim());
+
+        if (listaArgumentos == null)
+            listaArgumentos = new TdaLista<Opinion>();
+
+        return listaArgumentos;
+}
 
     /**
      * Calcula la polarización de todos los nodos del debate.
