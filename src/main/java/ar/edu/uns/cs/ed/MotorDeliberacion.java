@@ -110,7 +110,46 @@ public class MotorDeliberacion {
     }
 
     public void Postear(Usuario usr, String idNuevo, String idPadre, String postura, String texto) {
-        //TODO: Implementar la funcionalidad de postear un nuevo argumento en el debate.
+
+        //validacion de arbol vacío
+        if (arbolOpiniones.isEmpty()) throw new IllegalStateException("No hay ningún debate creado");
+
+        //validacion de parametros nulos y vacios
+        if ((usr == null) || (usr.getId() == null) || (usr.getId().trim().isEmpty()) 
+            || (idNuevo == null) || (idNuevo.trim().isEmpty()) 
+            || (idPadre == null) || (idPadre.trim().isEmpty())
+            || (postura == null) || (postura.trim().isEmpty())
+            || (texto == null) || (texto.trim().isEmpty())) 
+            throw new IllegalArgumentException("alguno/s de los parametros son invalidos");
+
+        //validacion de postura y estandarizacion (mayusculas y sin espacios)
+        String posturaMayus = postura.trim().toUpperCase();
+        if (!posturaMayus.equals("AFAVOR") && (!posturaMayus.equals("ENCONTRA")))
+            throw new IllegalArgumentException("La postura es incorrecta");
+
+        //conseguimos y validamos al padre y al posteo
+        Position<Opinion> padre = posicionesPorId.get(idPadre.trim());     //el mapa es lo que permite que el orden sea O(1)
+        if (padre == null) throw new IllegalArgumentException("El padre no existe");
+
+        String idPosteo = idNuevo.trim();
+        if (posicionesPorId.get(idPosteo) != null) throw new IllegalArgumentException("El ID ya existe");
+
+        //creamos opinion, la agregamos al arbol y metemos su posicion al mapa posicionesPorId
+        Opinion opinion = new Opinion(idPosteo,texto,posturaMayus,usr);
+        Position<Opinion> pos = arbolOpiniones.addLastChild(padre,opinion);
+        posicionesPorId.put(idPosteo,pos);
+
+        //conseguimos la lista de opiniones del usuario y le agregamos la nueva opinion
+        String idUsuario = usr.getId().trim();
+        PositionList<Opinion> lista = opinionesPorUsuario.get(idUsuario);
+        if (lista == null) {             //primera opinion del usuario
+            lista = new TdaLista<Opinion>();
+            opinionesPorUsuario.put(idUsuario,lista);
+        }
+        lista.addLast(opinion);
+
+        //registramos la operacion por si hay que deshacerla
+        registrarOperacion(2,"POSTEAR:" + idPosteo, idPosteo);
     }
     
 
@@ -221,13 +260,13 @@ public class MotorDeliberacion {
      * Cada nodo se muestra con su id, postura, usuario y texto del argumento.
      */
     public void imprimirDebate() {
-        if (arbol == null || arbol.isEmpty()) {
+        if (arbolOpiniones == null || arbolOpiniones.isEmpty()) {
             System.out.println("(El árbol de debate está vacío.)");
             return;
         }
 
         try {
-            Position<Opinion> raiz = arbol.root();
+            Position<Opinion> raiz = arbolOpiniones.root();
             System.out.println(formatearNodo(raiz.element()));
             imprimirHijos(raiz, "");
         } catch (Exception e) {
@@ -241,13 +280,13 @@ public class MotorDeliberacion {
      * conectores tipo "├──" / "└──" para el nivel actual.
      */
     private void imprimirHijos(Position<Opinion> nodo, String prefijo) throws InvalidPositionException {
-        PositionList<Position<Opinion>> hijos = new ListaDoblementeEnlazada<Position<Opinion>>();
-        for (Position<Opinion> hijo : arbol.children(nodo)) {
+        PositionList<Position<Opinion>> hijos = new TdaLista<Position<Opinion>>();
+        for (Position<Opinion> hijo : arbolOpiniones.children(nodo)) {
             hijos.addLast(hijo);
         }
 
 
-        for (Position<Opinion> hijo : arbol.children(nodo)) {
+        for (Position<Opinion> hijo : arbolOpiniones.children(nodo)) {
             boolean esUltimo = (hijo == hijos.last().element());
             
             String conector = esUltimo ? "└── " : "├── ";
@@ -268,5 +307,3 @@ public class MotorDeliberacion {
                 + "usuario=" + a.getUsuario().getId() + " -> " + a.getTexto();
     }
 }
-
-
