@@ -8,6 +8,7 @@ import ar.edu.uns.cs.ed.tdas.tdamapeo.Map;
 import ar.edu.uns.cs.ed.tdas.tdamapeo.MapeoHashAbierto;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Arbol;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Tree;
+import ar.edu.uns.cs.ed.tdas.tdadiccionario.Diccionario;
 import ar.edu.uns.cs.ed.tdas.tdapila.TDAPila;
 import ar.edu.uns.cs.ed.tdas.Position;
 import ar.edu.uns.cs.ed.tdas.excepciones.EmptyStackException;
@@ -153,9 +154,25 @@ public class MotorDeliberacion {
      * @return Un diccionario cuya clave es el ID del nodo y el valor es un diccionario con la polarización: 
      * "AFAVOR" y "ENCONTRA" y sus respectivos conteos.
      */
-    public DiccionarioHashAbierto<String,DiccionarioHashAbierto<String,Integer>> calcularPolarizacionDebate(){
-        //TODO
+    public Diccionario<String,DiccionarioHashAbierto<String,Integer>> calcularPolarizacionDebate(){
+         if (arbolOpiniones == null || arbolOpiniones.isEmpty()){
+            throw new IllegalStateException("no hay un debate activo");
+        }
+            Diccionario<String, Diccionario<String,Integer>> resultado= new Diccionario<String, Diccionario<String,Integer>>();
+            Position<Opinion> raiz = arbolOpiniones.root();
+
+            recorrerPolarizaciones(raiz,resultado);
+            return resultado;
     }
+     private void recorrerPolarizaciones(Position<Opinion> r, Diccionario<String, Diccionario<String,Integer>> d){
+        String id= r.element().getIdArgumento();
+        Diccionario<String,Integer> polarizacion = calcularPolarizacionNodo(id);
+        d.insert(id, polarizacion);
+        PositionList<Position<Opinion>> hijos= arbolOpiniones.children(r);
+        for (Position<Position<Opinion>> p : hijos.positions()){
+            recorrerPolarizaciones(p.element(), d);
+        }
+     }
 
      /**
     * Calcula la polarización de un nodo específico en el árbol de debate.
@@ -164,10 +181,38 @@ public class MotorDeliberacion {
     * @param idNodo : Identificador del nodo para el cual se desea calcular la polarización.
     * @return Un DiccionarioHashAbierto<String,Integer> que contiene la polarización del nodo, con las claves "AFAVOR" y "ENCONTRA" y sus respectivos conteos.
     */
-    public DiccionarioHashAbierto<String,Integer> calcularPolarizacionNodo(String idNodo){
-        //TODO
-
+    public Diccionario<String,Integer> calcularPolarizacionNodo(String idNodo){
+        if (arbolOpiniones == null || arbolOpiniones.isEmpty()){
+            throw new IllegalStateException("no hay debate activo");
+        }
+        Position<Opinion> nodo= posicionesPorId.get(idNodo);
+        if (nodo= null){
+            throw new IllegalArgumentException("no existe ese nodo");
+        }
+        int[] conteos = new int[2];
+        contarPolarizaciones(nodo,conteos);
+        Diccionario<String,Integer> resultado= new Diccionario<String,Integer>();
+        resultado.insert("AFAVOR", conteos[0]);
+        resultado.insert("ENCONTRA", conteos[1]);
+        return resultado;
+       
     }
+    private void contarPolarizaciones(Position<Opinion> n, int []c){
+        Opinion opinion= n.element();
+        if (opinion.getPostura().equals("A FAVOR")){
+            c[0]++;
+        }else {
+            if(opinion.getPostura().equals("EN CONTRA")){
+                c[1]++;
+            }
+        }
+        PositionList<Opinion> hijos = arbolOpiniones.children(n);
+        for (Position<Position<Opinion>> h : hijos.positions()){
+            contarPolarizaciones(h.element(), c);
+        }
+    
+    }
+    
  /*** Mostrar árbol por consola ***/
  
     /**
