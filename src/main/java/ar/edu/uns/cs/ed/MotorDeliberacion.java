@@ -364,4 +364,25 @@ public class MotorDeliberacion {
         return "[" + a.getIdArgumento() + "] (" + a.getPostura() + ") "
                 + "usuario=" + a.getUsuario().getId() + " -> " + a.getTexto();
     }
+
+    public void historialOperaciones() {
+        if (pilaOperaciones.isEmpty()) {
+            System.out.println("No hay operaciones registradas");
+            return;
+        }
+
+        // creamos pila auxiliar para invertir orden
+        Stack<Operaciones> pilaAux = new TDAPila<Operaciones>();
+        while (!pilaOperaciones.isEmpty())
+            pilaAux.push(pilaOperaciones.pop());
+
+        //mostramos de la primera a la ultima operacion
+        int numero = 1;
+        while (!pilaAux.isEmpty()) {
+            Operaciones tope = pilaAux.top();
+            System.out.println("Operacion N° "+ numero +": "+ tope.getDetalle());
+            pilaOperaciones.push(pilaAux.pop());
+            numero++;
+        }
+    }
 }
