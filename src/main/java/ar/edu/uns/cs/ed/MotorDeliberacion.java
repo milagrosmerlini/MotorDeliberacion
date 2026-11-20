@@ -225,7 +225,7 @@ public class MotorDeliberacion {
             throw new IllegalStateException("no hay debate activo");
         }
         Position<Opinion> nodo= posicionesPorId.get(idNodo);
-        if (nodo= null){
+        if (nodo== null){
             throw new IllegalArgumentException("no existe ese nodo");
         }
         int[] conteos = new int[2];
