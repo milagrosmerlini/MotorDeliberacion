@@ -10,6 +10,9 @@ import ar.edu.uns.cs.ed.tdas.tdaarbol.Arbol;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Tree;
 import ar.edu.uns.cs.ed.tdas.tdadiccionario.Diccionario;
 import ar.edu.uns.cs.ed.tdas.tdapila.TDAPila;
+
+import java.util.Iterator;
+
 import ar.edu.uns.cs.ed.tdas.Position;
 import ar.edu.uns.cs.ed.tdas.excepciones.EmptyStackException;
 
@@ -20,6 +23,7 @@ public class MotorDeliberacion {
     private Tree<Opinion> arbolOpiniones;
     private Map<String, Position<Opinion>> posicionesPorId;
     private Map<String, PositionList<Opinion>> opinionesPorUsuario;
+    private Map<String, Position<Opinion>> posicionEnListaUsuario;
 
     //Constructor
     public MotorDeliberacion() {
@@ -27,6 +31,7 @@ public class MotorDeliberacion {
         arbolOpiniones = new Arbol<Opinion>();
         posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
         opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
+        posicionEnListaUsuario = new MapeoHashAbierto<String, Position<Opinion>>();
     }
 
     /**
@@ -156,6 +161,7 @@ public class MotorDeliberacion {
 
         PositionList<Opinion> lista = new TdaLista<Opinion>();
         lista.addLast(raiz);
+        posicionEnListaUsuario.put(id,lista.last());
         opinionesPorUsuario.put(usuario.getId(), lista);
 
         registrarOperacion(1, "CREAR_DEBATE:" + id, id);
@@ -200,15 +206,52 @@ public class MotorDeliberacion {
             opinionesPorUsuario.put(idUsuario,lista);
         }
         lista.addLast(opinion);
+        posicionEnListaUsuario.put(idPosteo, lista.last());
 
         //registramos la operacion por si hay que deshacerla
         registrarOperacion(2,"POSTEAR:" + idPosteo, idPosteo);
     }
-    
 
     // Elimina un posteo y todo el subárbol.
     public void eliminarPosteo(String idUsuario, String idPosteo) {
-    //TODO: Implementar la funcionalidad de eliminar un posteo y todo su subárbol en el debate.
+
+        //validacion de parametros nulos y vacios
+        if ((idUsuario == null) || (idPosteo == null) 
+            || (idUsuario.trim().isEmpty() || (idPosteo.trim().isEmpty())))
+                throw new IllegalArgumentException("IdUsuario y/o IdPosteo incorrectos");
+
+        Position<Opinion> pos = posicionesPorId.get(idPosteo.trim());
+
+        //validaciones del posteo
+        if (pos == null) throw new IllegalArgumentException("El posteo no existe");
+
+        if (!pos.element().getUsuario().getId().trim().equals(idUsuario.trim())) 
+            throw new IllegalStateException("Este posteo no es del usuario ingresado");
+
+        //el posteo es la raiz
+        if (pos == arbolOpiniones.root()) {
+            clearDebate();
+            return;
+        }
+
+        //obtenemos subarbol
+        PositionList<String> listaIds = new TdaLista<String>();
+        PositionList<Position<Opinion>> listaPosiciones = new TdaLista<Position<Opinion>>();
+        obtenerIdsYPosicionesSubarbol(pos,listaIds,listaPosiciones);
+
+        //eliminamos los posteos de todo el subarbol
+        Iterator<String> itIds = listaIds.iterator();
+        Iterator<Position<Opinion>> itPos = listaPosiciones.iterator();
+        while (itPos.hasNext()) {
+            String idNodo = itIds.next();
+            Position<Opinion> p = itPos.next();
+            String autorPosteo = p.element().getUsuario().getId().trim();
+
+            opinionesPorUsuario.get(autorPosteo).remove(posicionEnListaUsuario.get(idNodo));      //O(1)
+            posicionEnListaUsuario.remove(idNodo);
+            posicionesPorId.remove(idNodo);
+            arbolOpiniones.removeNode(p);
+        }
     }
 
     //obtiene las posiciones en postorden.
@@ -227,6 +270,7 @@ public class MotorDeliberacion {
         posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
         opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
         pilaOperaciones = new TDAPila<Operaciones>();
+        posicionEnListaUsuario = new MapeoHashAbierto<String, Position<Opinion>>();
     }
 
     //consultar por usuario, devuelve una lista de argumentos que pertenecen a ese usuario.
