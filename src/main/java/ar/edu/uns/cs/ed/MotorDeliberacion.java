@@ -145,6 +145,8 @@ public class MotorDeliberacion {
         if (!arbolOpiniones.isEmpty())
             throw new IllegalStateException("Ya existe un debate");
 
+        pilaOperaciones = new TDAPila<Operaciones>();
+
         String id = idRaiz.trim();
         Usuario usuario = new Usuario(idUsuario.trim(), nombreUsuario.trim());
         Opinion raiz = new Opinion(id, texto.trim(), "ROOT", usuario);
