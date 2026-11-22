@@ -5,6 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import ar.edu.uns.cs.ed.tdas.excepciones.EmptyStackException;
+import ar.edu.uns.cs.ed.tdas.tdadiccionario.Diccionario;
 import ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
 import main.java.ar.edu.uns.cs.ed.MotorDeliberacion;
 import main.java.ar.edu.uns.cs.ed.Opinion;
@@ -401,7 +402,7 @@ public class MotorDeliberacionTest {
        @Test 
     public  void calcularPolarizacionDebate()
     {
-        DiccionarioHashAbierto<String,DiccionarioHashAbierto<String,Integer>> polarizacion = motor.calcularPolarizacionDebate();
+        Diccionario<String,Diccionario<String,Integer>> polarizacion = motor.calcularPolarizacionDebate();
         
         assertEquals(16, polarizacion.size());
         assertPolarizacion(polarizacion.find("posteo1").getValue(),3, 3);
@@ -420,7 +421,7 @@ public class MotorDeliberacionTest {
         motor.calcularPolarizacionNodo("noExiste");
     }
     
-    private <V> void assertPolarizacion(DiccionarioHashAbierto<String, Integer> dic, int afavor, int encontra) {
+    private <V> void assertPolarizacion(Diccionario<String, Integer> dic, int afavor, int encontra) {
         assertEquals(Integer.valueOf(afavor), dic.find("AFAVOR").getValue());
         assertEquals(Integer.valueOf(encontra), dic.find("ENCONTRA").getValue());
     }
@@ -456,7 +457,7 @@ public class MotorDeliberacionTest {
 
     @Test
     public void polarizacionNodo_tieneSoloLasClavesAfavorYEncontra() {
-        DiccionarioHashAbierto<String, Integer> pol = motor.calcularPolarizacionNodo("posteo1");
+        Diccionario<String, Integer> pol = motor.calcularPolarizacionNodo("posteo1");
         assertNotNull(pol.find("AFAVOR"));
         assertNotNull(pol.find("ENCONTRA"));
     }

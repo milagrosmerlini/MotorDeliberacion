@@ -8,7 +8,11 @@ import ar.edu.uns.cs.ed.tdas.tdamapeo.Map;
 import ar.edu.uns.cs.ed.tdas.tdamapeo.MapeoHashAbierto;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Arbol;
 import ar.edu.uns.cs.ed.tdas.tdaarbol.Tree;
+import ar.edu.uns.cs.ed.tdas.tdadiccionario.Diccionario;
 import ar.edu.uns.cs.ed.tdas.tdapila.TDAPila;
+
+import java.util.Iterator;
+
 import ar.edu.uns.cs.ed.tdas.Position;
 import ar.edu.uns.cs.ed.tdas.excepciones.EmptyStackException;
 
@@ -19,6 +23,7 @@ public class MotorDeliberacion {
     private Tree<Opinion> arbolOpiniones;
     private Map<String, Position<Opinion>> posicionesPorId;
     private Map<String, PositionList<Opinion>> opinionesPorUsuario;
+    private Map<String, Position<Opinion>> posicionEnListaUsuario;
 
     //Constructor
     public MotorDeliberacion() {
@@ -26,6 +31,7 @@ public class MotorDeliberacion {
         arbolOpiniones = new Arbol<Opinion>();
         posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
         opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
+        posicionEnListaUsuario = new MapeoHashAbierto<String, Position<Opinion>>();
     }
 
     /**
@@ -63,8 +69,61 @@ public class MotorDeliberacion {
  * @throws EmptyStackException
  */
     public String deshacerUltimaOperacion() throws EmptyStackException {
-        //TODO: Implementar la funcionalidad de deshacer la última operación registrada.
+        
+        if(pilaOperaciones.isEmpty()){
+            throw new EmptyStackException("no hay operaciones registradas");
+        }
+        Operaciones ultima= pilaOperaciones.pop();
+        if(ultima.getOperacion()== 3){
+            throw new IllegalArgumentException("no se puede deshacer la operacion ELIMINAR POSTEO");
+        }else if (ultima.getOperacion()== 1) {
+            arbolOpiniones = new Arbol<Opinion>();
+            posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
+            opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
+            return "Se deshizo la operación " + ultima.getDetalle();
+
+            
+        } else if(ultima.getOperacion()== 2){
+            String id= ultima.getId();
+            Position<Opinion> pos= posicionesPorId.get(id);
+            if(pos == null){
+                throw new IllegalStateException("no se puede deshacer la operacion postear");
+            }
+            Opinion opinion= pos.element();
+            String idUsuario= opinion.getUsuario().getId();
+            PositionList<Opinion> lista= opinionesPorUsuario.get(idUsuario);
+            // Eliminamos el posteo del árbol
+            arbolOpiniones.removeExternalNode(pos);
+
+        // Eliminamos el ID del mapa de posiciones
+            posicionesPorId.remove(id);
+            if(lista!= null){
+                Position<Opinion> posLista= null;
+
+                for( Position<Opinion> p : lista.positions()){
+                    if(p.element().getIdArgumento().equals(id)){
+                        posLista=p;
+                        break;
+                    }
+                }
+                if(posLista!= null){
+                    lista.remove(posLista);
+
+                }
+                // Si la lista quedó vacía, eliminamos al usuario del mapa
+            if (lista.isEmpty()){
+                opinionesPorUsuario.remove(idUsuario);
+            }
+            }
+
+        return "Se deshizo la operación POSTEAR: " + id;
+
+        }
+           return "Operación desconocida";
+
     }
+
+
 /**
  * Crea un nuevo debate con un argumento raíz.
  * @param idRaiz   : Identificador único del tema raíz.
@@ -102,6 +161,7 @@ public class MotorDeliberacion {
 
         PositionList<Opinion> lista = new TdaLista<Opinion>();
         lista.addLast(raiz);
+        posicionEnListaUsuario.put(id,lista.last());
         opinionesPorUsuario.put(usuario.getId(), lista);
 
         registrarOperacion(1, "CREAR_DEBATE:" + id, id);
@@ -109,18 +169,99 @@ public class MotorDeliberacion {
     }
 
     public void Postear(Usuario usr, String idNuevo, String idPadre, String postura, String texto) {
-        //TODO: Implementar la funcionalidad de postear un nuevo argumento en el debate.
+
+        //validacion de arbol vacío
+        if (arbolOpiniones.isEmpty()) throw new IllegalStateException("No hay ningún debate creado");
+
+        //validacion de parametros nulos y vacios
+        if ((usr == null) || (usr.getId() == null) || (usr.getId().trim().isEmpty()) 
+            || (idNuevo == null) || (idNuevo.trim().isEmpty()) 
+            || (idPadre == null) || (idPadre.trim().isEmpty())
+            || (postura == null) || (postura.trim().isEmpty())
+            || (texto == null) || (texto.trim().isEmpty())) 
+            throw new IllegalArgumentException("alguno/s de los parametros son invalidos");
+
+        //validacion de postura y estandarizacion (mayusculas y sin espacios)
+        String posturaMayus = postura.trim().toUpperCase();
+        if (!posturaMayus.equals("AFAVOR") && (!posturaMayus.equals("ENCONTRA")))
+            throw new IllegalArgumentException("La postura es incorrecta");
+
+        //conseguimos y validamos al padre y al posteo
+        Position<Opinion> padre = posicionesPorId.get(idPadre.trim());     //el mapa es lo que permite que el orden sea O(1)
+        if (padre == null) throw new IllegalArgumentException("El padre no existe");
+
+        String idPosteo = idNuevo.trim();
+        if (posicionesPorId.get(idPosteo) != null) throw new IllegalArgumentException("El ID ya existe");
+
+        //creamos opinion, la agregamos al arbol y metemos su posicion al mapa posicionesPorId
+        Opinion opinion = new Opinion(idPosteo,texto,posturaMayus,usr);
+        Position<Opinion> pos = arbolOpiniones.addLastChild(padre,opinion);
+        posicionesPorId.put(idPosteo,pos);
+
+        //conseguimos la lista de opiniones del usuario y le agregamos la nueva opinion
+        String idUsuario = usr.getId().trim();
+        PositionList<Opinion> lista = opinionesPorUsuario.get(idUsuario);
+        if (lista == null) {             //primera opinion del usuario
+            lista = new TdaLista<Opinion>();
+            opinionesPorUsuario.put(idUsuario,lista);
+        }
+        lista.addLast(opinion);
+        posicionEnListaUsuario.put(idPosteo, lista.last());
+
+        //registramos la operacion por si hay que deshacerla
+        registrarOperacion(2,"POSTEAR:" + idPosteo, idPosteo);
     }
-    
 
     // Elimina un posteo y todo el subárbol.
     public void eliminarPosteo(String idUsuario, String idPosteo) {
-    //TODO: Implementar la funcionalidad de eliminar un posteo y todo su subárbol en el debate.
+
+        //validacion de parametros nulos y vacios
+        if ((idUsuario == null) || (idPosteo == null) 
+            || (idUsuario.trim().isEmpty() || (idPosteo.trim().isEmpty())))
+                throw new IllegalArgumentException("IdUsuario y/o IdPosteo incorrectos");
+
+        Position<Opinion> pos = posicionesPorId.get(idPosteo.trim());
+
+        //validaciones del posteo
+        if (pos == null) throw new IllegalArgumentException("El posteo no existe");
+
+        if (!pos.element().getUsuario().getId().trim().equals(idUsuario.trim())) 
+            throw new IllegalStateException("Este posteo no es del usuario ingresado");
+
+        //el posteo es la raiz
+        if (pos == arbolOpiniones.root()) {
+            clearDebate();
+            return;
+        }
+
+        //obtenemos subarbol
+        PositionList<String> listaIds = new TdaLista<String>();
+        PositionList<Position<Opinion>> listaPosiciones = new TdaLista<Position<Opinion>>();
+        obtenerIdsYPosicionesSubarbol(pos,listaIds,listaPosiciones);
+
+        //eliminamos los posteos de todo el subarbol
+        Iterator<String> itIds = listaIds.iterator();
+        Iterator<Position<Opinion>> itPos = listaPosiciones.iterator();
+        while (itPos.hasNext()) {
+            String idNodo = itIds.next();
+            Position<Opinion> p = itPos.next();
+            String autorPosteo = p.element().getUsuario().getId().trim();
+
+            opinionesPorUsuario.get(autorPosteo).remove(posicionEnListaUsuario.get(idNodo));      //O(1)
+            posicionEnListaUsuario.remove(idNodo);
+            posicionesPorId.remove(idNodo);
+            arbolOpiniones.removeNode(p);
+        }
     }
 
     //obtiene las posiciones en postorden.
     private void obtenerIdsYPosicionesSubarbol(Position<Opinion> nodo, PositionList<String> ids, PositionList<Position<Opinion>> posiciones) {
-    //TODO: Implementar la funcionalidad de obtener los ids y posiciones de un subárbol en postorden.
+    
+    for(Position<Opinion> hijo : arbolOpiniones.children(nodo)){
+        obtenerIdsYPosicionesSubarbol (hijo, ids, posiciones);
+    }
+    ids.addLast(nodo.element().getIdArgumento());
+    posiciones.addLast(nodo);
     }
 
     //limpia todo el debate, dejando la estructura vacía.   
@@ -129,6 +270,7 @@ public class MotorDeliberacion {
         posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
         opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
         pilaOperaciones = new TDAPila<Operaciones>();
+        posicionEnListaUsuario = new MapeoHashAbierto<String, Position<Opinion>>();
     }
 
     //consultar por usuario, devuelve una lista de argumentos que pertenecen a ese usuario.
@@ -153,9 +295,25 @@ public class MotorDeliberacion {
      * @return Un diccionario cuya clave es el ID del nodo y el valor es un diccionario con la polarización: 
      * "AFAVOR" y "ENCONTRA" y sus respectivos conteos.
      */
-    public DiccionarioHashAbierto<String,DiccionarioHashAbierto<String,Integer>> calcularPolarizacionDebate(){
-        //TODO
+    public Diccionario<String,Diccionario<String,Integer>> calcularPolarizacionDebate(){
+         if (arbolOpiniones == null || arbolOpiniones.isEmpty()){
+            throw new IllegalStateException("no hay un debate activo");
+        }
+            Diccionario<String, Diccionario<String,Integer>> resultado= new Diccionario<String, Diccionario<String,Integer>>();
+            Position<Opinion> raiz = arbolOpiniones.root();
+
+            recorrerPolarizaciones(raiz,resultado);
+            return resultado;
     }
+     private void recorrerPolarizaciones(Position<Opinion> r, Diccionario<String, Diccionario<String,Integer>> d){
+        String id= r.element().getIdArgumento();
+        Diccionario<String,Integer> polarizacion = calcularPolarizacionNodo(id);
+        d.insert(id, polarizacion);
+        
+        for (Position<Opinion> p : arbolOpiniones.children(r) ){
+            recorrerPolarizaciones(p,d);
+        }
+     }
 
      /**
     * Calcula la polarización de un nodo específico en el árbol de debate.
@@ -164,10 +322,38 @@ public class MotorDeliberacion {
     * @param idNodo : Identificador del nodo para el cual se desea calcular la polarización.
     * @return Un DiccionarioHashAbierto<String,Integer> que contiene la polarización del nodo, con las claves "AFAVOR" y "ENCONTRA" y sus respectivos conteos.
     */
-    public DiccionarioHashAbierto<String,Integer> calcularPolarizacionNodo(String idNodo){
-        //TODO
-
+    public Diccionario<String,Integer> calcularPolarizacionNodo(String idNodo){
+        if (arbolOpiniones == null || arbolOpiniones.isEmpty()){
+            throw new IllegalStateException("no hay debate activo");
+        }
+        Position<Opinion> nodo= posicionesPorId.get(idNodo);
+        if (nodo ==null){
+            throw new IllegalArgumentException("no existe ese nodo");
+        }
+        int[] conteos = new int[2];
+        contarPolarizaciones(nodo,conteos);
+        Diccionario<String,Integer> resultado= new Diccionario<String,Integer>();
+        resultado.insert("AFAVOR", conteos[0]);
+        resultado.insert("ENCONTRA", conteos[1]);
+        return resultado;
+       
     }
+    private void contarPolarizaciones(Position<Opinion> n, int []c){
+        Opinion opinion= n.element();
+        if (opinion.getPostura().equals("A FAVOR")){
+            c[0]++;
+        }else {
+            if(opinion.getPostura().equals("EN CONTRA")){
+                c[1]++;
+            }
+        }
+       
+        for (Position<Opinion> h : arbolOpiniones.children(n)){
+            contarPolarizaciones(h, c);
+        }
+    
+    }
+    
  /*** Mostrar árbol por consola ***/
  
     /**
@@ -176,13 +362,13 @@ public class MotorDeliberacion {
      * Cada nodo se muestra con su id, postura, usuario y texto del argumento.
      */
     public void imprimirDebate() {
-        if (arbol == null || arbol.isEmpty()) {
+        if (arbolOpiniones == null || arbolOpiniones.isEmpty()) {
             System.out.println("(El árbol de debate está vacío.)");
             return;
         }
 
         try {
-            Position<Opinion> raiz = arbol.root();
+            Position<Opinion> raiz = arbolOpiniones.root();
             System.out.println(formatearNodo(raiz.element()));
             imprimirHijos(raiz, "");
         } catch (Exception e) {
@@ -196,13 +382,13 @@ public class MotorDeliberacion {
      * conectores tipo "├──" / "└──" para el nivel actual.
      */
     private void imprimirHijos(Position<Opinion> nodo, String prefijo) throws InvalidPositionException {
-        PositionList<Position<Opinion>> hijos = new ListaDoblementeEnlazada<Position<Opinion>>();
-        for (Position<Opinion> hijo : arbol.children(nodo)) {
+        PositionList<Position<Opinion>> hijos = new TdaLista<Position<Opinion>>();
+        for (Position<Opinion> hijo : arbolOpiniones.children(nodo)) {
             hijos.addLast(hijo);
         }
 
 
-        for (Position<Opinion> hijo : arbol.children(nodo)) {
+        for (Position<Opinion> hijo : arbolOpiniones.children(nodo)) {
             boolean esUltimo = (hijo == hijos.last().element());
             
             String conector = esUltimo ? "└── " : "├── ";
@@ -222,6 +408,25 @@ public class MotorDeliberacion {
         return "[" + a.getIdArgumento() + "] (" + a.getPostura() + ") "
                 + "usuario=" + a.getUsuario().getId() + " -> " + a.getTexto();
     }
+
+    public void historialOperaciones() {
+        if (pilaOperaciones.isEmpty()) {
+            System.out.println("No hay operaciones registradas");
+            return;
+        }
+
+        // creamos pila auxiliar para invertir orden
+        Stack<Operaciones> pilaAux = new TDAPila<Operaciones>();
+        while (!pilaOperaciones.isEmpty())
+            pilaAux.push(pilaOperaciones.pop());
+
+        //mostramos de la primera a la ultima operacion
+        int numero = 1;
+        while (!pilaAux.isEmpty()) {
+            Operaciones tope = pilaAux.top();
+            System.out.println("Operacion N° "+ numero +": "+ tope.getDetalle());
+            pilaOperaciones.push(pilaAux.pop());
+            numero++;
+        }
+    }
 }
-
-
