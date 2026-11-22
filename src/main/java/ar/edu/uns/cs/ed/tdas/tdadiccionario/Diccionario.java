@@ -31,7 +31,7 @@ public class Diccionario<K,V> implements Dictionary<K,V>{
     }
     public Entry<K,V> find(K key){
         checkKey(key);
-        int i= key.hashCode()% N;
+        int i = Math.floorMod(key.hashCode(), N);
         PositionList<Entrada<K,V>> l= A[i];
         for(Entrada<K,V> e: l){
             if(e.getKey().equals(key))
@@ -43,7 +43,7 @@ public class Diccionario<K,V> implements Dictionary<K,V>{
     }
     public Iterable<Entry<K,V>> findAll(K key){
         checkKey(key);
-        int i= key.hashCode() % N;
+        int i = Math.floorMod(key.hashCode(), N);
         PositionList<Entrada<K,V>> l= A[i];
         PositionList<Entry<K,V>> entradas= new TdaLista<>();
         for(Entrada<K,V> e: l){
@@ -55,7 +55,7 @@ public class Diccionario<K,V> implements Dictionary<K,V>{
     }
     public Entry<K,V> insert(K key, V value){
         checkKey(key);
-        int i= key.hashCode() % N;
+        int i = Math.floorMod(key.hashCode(), N);
         PositionList<Entrada<K,V>> l= A[i];
 
         Entrada<K,V> e= new Entrada<K,V>(key, value);
@@ -68,7 +68,7 @@ public class Diccionario<K,V> implements Dictionary<K,V>{
         if(e==null){
             throw new InvalidEntryException("entrada invalida");
         }
-        int i= e.getKey().hashCode() % N;
+        int i = Math.floorMod(e.getKey().hashCode(), N);
         PositionList<Entrada<K,V>> l= A[i];
         for( Position<Entrada<K,V>> p : l.positions() ){
             Entrada<K,V> entrada= p.element();
@@ -96,9 +96,5 @@ public class Diccionario<K,V> implements Dictionary<K,V>{
             throw new InvalidKeyException("Clave invalida");
         }
     }
-
-
-
-
     
 }

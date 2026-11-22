@@ -7,9 +7,6 @@ import static org.junit.Assert.*;
 import ar.edu.uns.cs.ed.tdas.excepciones.EmptyStackException;
 import ar.edu.uns.cs.ed.tdas.tdadiccionario.Diccionario;
 import ar.edu.uns.cs.ed.tdas.tdalista.PositionList;
-import main.java.ar.edu.uns.cs.ed.MotorDeliberacion;
-import main.java.ar.edu.uns.cs.ed.Opinion;
-import main.java.ar.edu.uns.cs.ed.Usuario;
 
 /**
  * Tests de MotorDeliveracion (JUnit 4).

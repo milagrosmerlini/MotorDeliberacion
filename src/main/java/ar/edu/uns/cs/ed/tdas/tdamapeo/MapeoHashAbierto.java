@@ -24,7 +24,7 @@ public class MapeoHashAbierto<K,V> implements Map<K,V>{
     }
     public V get(K key){
         checkKey(key);
-        int i= key.hashCode() % N;// preguntar
+        int i = Math.floorMod(key.hashCode(), N);
         PositionList<Entrada<K,V>> l= A[i];
         V toRet= null;
         for(Entrada<K,V> e : l){
@@ -38,7 +38,7 @@ public class MapeoHashAbierto<K,V> implements Map<K,V>{
     
     public V put(K key, V value) {
        checkKey(key);
-       int i= key.hashCode() % N;
+       int i = Math.floorMod(key.hashCode(), N);
        PositionList<Entrada<K,V>> l= A[i];
        for (Entrada<K,V> e : l){
            if (e.getKey().equals(key)){
@@ -62,7 +62,7 @@ public class MapeoHashAbierto<K,V> implements Map<K,V>{
         checkKey(key);
 
     
-        int i= key.hashCode() % N;
+        int i = Math.floorMod(key.hashCode(), N);
         PositionList<Entrada<K,V>> l= A[i];
         for (Position<Entrada<K, V>> e: l.positions()){
             Entrada<K,V> p= e.element();
