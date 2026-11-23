@@ -238,10 +238,7 @@ public class MotorDeliberacion {
 
         //el posteo es la raiz
         if (arbolOpiniones.isRoot(pos)) {
-            arbolOpiniones = new Arbol<Opinion>();
-            posicionesPorId = new MapeoHashAbierto<String, Position<Opinion>>();
-            opinionesPorUsuario = new MapeoHashAbierto<String, PositionList<Opinion>>();
-            posicionEnListaUsuario = new MapeoHashAbierto<String, Position<Opinion>>();
+            clearDebate();
         }
         else{
             //obtenemos subarbol
